@@ -2,10 +2,12 @@
 
 class FriendsController < ApplicationController
   before_action :set_friend, only: %i[show edit update destroy]
+  before_action :authenticate_user!, exept: [:index, :show]
+  before_action :correct_friend, only: [:edit, :destroy, :update]
 
   # GET /friends or /friends.json
   def index
-    @friends = Friend.all
+    @friends = Friend.where(user_id: current_user.id)
   end
 
   # GET /friends/1 or /friends/1.json
@@ -13,7 +15,7 @@ class FriendsController < ApplicationController
 
   # GET /friends/new
   def new
-    @friend = Friend.new
+    @friend = current_user.friends.build
   end
 
   # GET /friends/1/edit
@@ -24,9 +26,7 @@ class FriendsController < ApplicationController
 
     some_params = friend_params
 
-    puts 'LOG: ' + some_params
-
-    @friend = Friend.new(some_params)
+    @friend = current_user.friends.build(some_params)
 
     respond_to do |format|
       if @friend.save
@@ -63,6 +63,12 @@ class FriendsController < ApplicationController
 
   private
 
+  def correct_friend 
+    @friend = current_user.friends.find_by(id: params[:id])
+
+    redirect_to friends_path, notice: 'Not Authorized To Edit This Friend' if @friend.nil?
+  end
+
   # Use callbacks to share common setup or constraints between actions.
   def set_friend
 
@@ -76,7 +82,11 @@ class FriendsController < ApplicationController
 
     puts 'LOG: friend_params'
 
-    params.require(:friend).permit(:first_name, :last_name, :email, :phone, :twitter)
+    some_params = params.require(:friend).permit(:first_name, :last_name, :email, :phone, :twitter)
+
+    # some_params[:user_id] = current_user.id
+
+    return some_params
   end
 
 end
